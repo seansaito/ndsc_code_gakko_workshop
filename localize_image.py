@@ -34,7 +34,9 @@ logger = logging.getLogger(__name__)
 
 
 def yolo_head(feats, anchors, num_classes, input_shape):
-    """Convert final layer features to bounding box parameters."""
+    """
+    Convert final layer features to bounding box parameters.
+    """
     num_anchors = len(anchors)
     # Reshape to batch, height, width, num_anchors, box_params.
     anchors_tensor = K.reshape(K.constant(anchors), [1, 1, 1, num_anchors, 2])
@@ -60,7 +62,10 @@ def yolo_head(feats, anchors, num_classes, input_shape):
 
 
 def yolo_correct_boxes(box_xy, box_wh, input_shape, image_shape):
-    """Get corrected boxes"""
+    """
+    Get corrected boxes according to the image's original shapes
+    In other words, we scale the predicted bounding boxes to the input's original dimensions
+    """
     box_yx = box_xy[..., ::-1]
     box_hw = box_wh[..., ::-1]
     input_shape = K.cast(input_shape, K.dtype(box_yx))
@@ -91,7 +96,9 @@ def yolo_predict(yolo_outputs,
                  max_boxes=20,
                  score_threshold=.6,
                  iou_threshold=.5):
-    """Evaluate YOLO model on given input and return filtered boxes."""
+    """
+    Get prediction from YOLO model on given input and return filtered boxes.
+    """
     num_layers = len(yolo_outputs)
     anchor_mask = [[6, 7, 8], [3, 4, 5], [0, 1, 2]]
 
@@ -233,6 +240,7 @@ class YOLODetector(object):
             feed_dict={
                 self.yolo_model.input: image_data,
                 self.input_image_shape: [image.size[1], image.size[0]],
+                # This flag is to tell the model that it's test mode
                 K.learning_phase(): 0
             })
 
