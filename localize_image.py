@@ -11,7 +11,7 @@ from keras.models import load_model
 from prettytable import PrettyTable
 
 ### CONSTANTS
-repo_path = '/Users/i330688/dev/ndsc_code_gakko_workshop'
+repo_path = os.path.curdir
 model_data_dir = os.path.join(repo_path, 'model_data')
 model_path = os.path.join(model_data_dir, 'yolo.h5')
 anchors_path = os.path.join(model_data_dir, 'yolo_anchors.txt')
