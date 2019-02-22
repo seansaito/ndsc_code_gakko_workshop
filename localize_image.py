@@ -1,3 +1,4 @@
+import argparse
 import colorsys
 import logging
 import os
@@ -18,12 +19,6 @@ anchors_path = os.path.join(model_data_dir, 'yolo_anchors.txt')
 classes_path = os.path.join(model_data_dir, 'coco_classes.txt')
 font_path = os.path.join(repo_path, 'font/FiraMono-Medium.otf')
 font_size = 14
-img_path = os.path.join(repo_path, 'images/dog.jpg')
-# This constant determines the minimum score required for a detection to be a considered
-detection_score_threshold = 0.3
-# This constant determines threshold for pruning away bounding box predictions that have
-# overlap with previous selections
-nms_iou_threshold = 0.45
 # Thickness of bounding boxes
 thickness = 4
 image_shape = (416, 416)
@@ -88,6 +83,7 @@ def yolo_correct_boxes(box_xy, box_wh, input_shape, image_shape):
     # Scale boxes back to original image shape.
     boxes *= K.concatenate([image_shape, image_shape])
     return boxes
+
 
 def yolo_predict(yolo_outputs,
                  anchors,
@@ -166,10 +162,12 @@ def preprocess_image(image, size):
 
 class YOLODetector(object):
 
-    def __init__(self):
+    def __init__(self, score_threshold, iou_threshold):
         self.model_path = model_path
         self.anchors_path = anchors_path
         self.classes_path = classes_path
+        self.score_threshold = score_threshold
+        self.iou_threshold = iou_threshold
         self.class_names = self._get_class()
         self.anchors = self._get_anchors()
         self.sess = K.get_session()
@@ -214,8 +212,8 @@ class YOLODetector(object):
                                               anchors=self.anchors,
                                               num_classes=len(self.class_names),
                                               image_shape=self.input_image_shape,
-                                              score_threshold=detection_score_threshold,
-                                              iou_threshold=nms_iou_threshold)
+                                              score_threshold=self.score_threshold,
+                                              iou_threshold=self.iou_threshold)
         return boxes, scores, classes
 
     def detect_image(self, image):
@@ -299,7 +297,34 @@ class YOLODetector(object):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='YOLO detection program for images',
+                                     allow_abbrev=False)
+    parser.add_argument('--img_path', type=str, required=False,
+                        default=os.path.join(repo_path, 'images/dog.jpg'),
+                        help='Path to the input image')
+    parser.add_argument('--detection_score_threshold', type=float, required=False,
+                        default=0.3,
+                        help='The minimum score required for a detection to be a considered')
+    parser.add_argument('--nms_iou_threshold', type=float, required=False,
+                        default=0.45,
+                        help='The threshold for pruning away bounding box predictions that have '
+                             'overlap with previous selections')
+
+    # Parse input arguments
+    args = parser.parse_args()
+    args = vars(args)
+
+    img_path = args['img_path']
+    assert os.path.exists(img_path), 'Check the image path!'
+
+    detection_score_threshold = float(args['detection_score_threshold'])
+    nms_iou_threshold = float(args['nms_iou_threshold'])
+
+    logger.info('Detection score threshold is: {}'.format(detection_score_threshold))
+    logger.info('IoU threshold is: {}'.format(nms_iou_threshold))
+
     image = Image.open(img_path)
-    yolo_model = YOLODetector()
+    yolo_model = YOLODetector(score_threshold=detection_score_threshold,
+                              iou_threshold=nms_iou_threshold)
     detected_image = yolo_model.detect_image(image)
     detected_image.show()
